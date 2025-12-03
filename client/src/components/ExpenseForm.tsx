@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Expense, CreateExpenseDto, ExpenseCategory } from '@shared/types'
+import type { Expense, CreateExpenseDto, ExpenseCategory, RecurringFrequency } from '@shared/types'
 import '../styles/ExpenseForm.css'
 
 interface ExpenseFormProps {
@@ -18,12 +18,22 @@ const categories: ExpenseCategory[] = [
   'other',
 ]
 
+const frequencies: RecurringFrequency[] = [
+  'daily',
+  'weekly',
+  'biweekly',
+  'monthly',
+  'yearly',
+]
+
 function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
   const [formData, setFormData] = useState<CreateExpenseDto>({
     amount: expense?.amount || 0,
     description: expense?.description || '',
     category: expense?.category || 'other',
     date: expense?.date || new Date().toISOString().split('T')[0],
+    isRecurring: expense?.isRecurring || false,
+    recurringFrequency: expense?.recurringFrequency || undefined,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +45,8 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
         description: expense.description,
         category: expense.category,
         date: expense.date.split('T')[0],
+        isRecurring: expense.isRecurring,
+        recurringFrequency: expense.recurringFrequency,
       })
     }
   }, [expense])
@@ -66,10 +78,12 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
+
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value,
+      [name]: type === 'checkbox' ? checked : (name === 'amount' ? parseFloat(value) || 0 : value),
     }))
   }
 
@@ -143,6 +157,37 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
               max={new Date().toISOString().split('T')[0]}
             />
           </div>
+
+          <div className="form-group-checkbox">
+            <input
+              type="checkbox"
+              id="isRecurring"
+              name="isRecurring"
+              checked={formData.isRecurring}
+              onChange={handleChange}
+            />
+            <label htmlFor="isRecurring">This is a recurring expense</label>
+          </div>
+
+          {formData.isRecurring && (
+            <div className="form-group">
+              <label htmlFor="recurringFrequency">Frequency</label>
+              <select
+                id="recurringFrequency"
+                name="recurringFrequency"
+                value={formData.recurringFrequency || ''}
+                onChange={handleChange}
+                required={formData.isRecurring}
+              >
+                <option value="">Select frequency...</option>
+                {frequencies.map((freq) => (
+                  <option key={freq} value={freq}>
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-actions">
             <button
