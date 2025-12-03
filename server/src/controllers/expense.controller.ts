@@ -5,7 +5,7 @@ import { pool } from '../config/database.js';
 export const getAllExpenses = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      'SELECT id, amount, description, category, date, created_at as "createdAt", updated_at as "updatedAt" FROM expenses ORDER BY date DESC'
+      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses ORDER BY date DESC'
     );
 
     const response: ApiResponse<Expense[]> = {
@@ -27,7 +27,7 @@ export const getExpenseById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT id, amount, description, category, date, created_at as "createdAt", updated_at as "updatedAt" FROM expenses WHERE id = $1',
+      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses WHERE id = $1',
       [id]
     );
 
@@ -67,8 +67,8 @@ export const createExpense = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO expenses (amount, description, category, date) VALUES ($1, $2, $3, $4) RETURNING id, amount, description, category, date, created_at as "createdAt", updated_at as "updatedAt"',
-      [dto.amount, dto.description, dto.category, dto.date]
+      'INSERT INTO expenses (amount, description, category, date, is_recurring, recurring_frequency) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"',
+      [dto.amount, dto.description, dto.category, dto.date, dto.isRecurring || false, dto.recurringFrequency || null]
     );
 
     const response: ApiResponse<Expense> = {
@@ -122,12 +122,20 @@ export const updateExpense = async (req: Request, res: Response) => {
       updates.push(`date = $${paramCount++}`);
       values.push(dto.date);
     }
+    if (dto.isRecurring !== undefined) {
+      updates.push(`is_recurring = $${paramCount++}`);
+      values.push(dto.isRecurring);
+    }
+    if (dto.recurringFrequency !== undefined) {
+      updates.push(`recurring_frequency = $${paramCount++}`);
+      values.push(dto.recurringFrequency);
+    }
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
 
     const result = await pool.query(
-      `UPDATE expenses SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, amount, description, category, date, created_at as "createdAt", updated_at as "updatedAt"`,
+      `UPDATE expenses SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"`,
       values
     );
 
