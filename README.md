@@ -1,6 +1,6 @@
-# ReTracker
+# ReTracker v1
 
-A personal assistance app to track expenses with a modern full-stack architecture.
+A personal finance tracker to manage expenses, income, and budgets with a modern full-stack architecture.
 
 ## Tech Stack
 
@@ -10,12 +10,13 @@ A personal assistance app to track expenses with a modern full-stack architectur
 - Vite
 - React Router
 - Axios
+- Recharts (data visualization)
 
 ### Backend
 - Node.js
 - Express
 - TypeScript
-- PostgreSQL (planned)
+- PostgreSQL
 
 ## Project Structure
 
@@ -123,7 +124,7 @@ npm start
 
 ## API Endpoints
 
-- `GET /api/health` - Health check
+### Expenses
 - `GET /api/expenses` - Get all expenses
 - `GET /api/expenses/stats` - Get expense statistics
 - `GET /api/expenses/:id` - Get expense by ID
@@ -131,19 +132,51 @@ npm start
 - `PUT /api/expenses/:id` - Update expense
 - `DELETE /api/expenses/:id` - Delete expense
 
+### Income
+- `GET /api/income` - Get all income sources
+- `GET /api/income/:id` - Get income by ID
+- `POST /api/income` - Create new income
+- `PUT /api/income/:id` - Update income
+- `DELETE /api/income/:id` - Delete income
+
+### Budget
+- `GET /api/budget/summary` - Get complete budget summary
+
 ## Features
 
-- Track expenses with categories
-- View expense statistics
-- Monthly spending analysis
-- Daily average calculations
-- Category-based breakdown
+### Expense Tracking
+- Add, edit, and delete expenses with categories
+- Recurring expense support (daily, weekly, biweekly, monthly, yearly)
+- Search and filter by category, date range, and keywords
+- View expense statistics and trends
+- Export to CSV or print/PDF
+- Category-based pie charts
+- Monthly trend bar charts
 
-## Development Roadmap
+### Income Management
+- Track salary income with biweekly/semimonthly pay periods
+- Track hourly wages with hours per week
+- Automatic federal tax rate calculation
+- Add, edit, and delete income sources
 
-- [ ] Add database integration (PostgreSQL)
-- [ ] Implement user authentication
-- [ ] Add expense filtering and search
-- [ ] Create data visualization charts
-- [ ] Export expenses to CSV/PDF
-- [ ] Mobile-responsive design improvements 
+### Budget Overview
+- Complete budget summary with yearly and monthly breakdowns
+- Net income calculations after taxes and expenses
+- Savings rate percentage
+- Projected yearly expenses from recurring costs
+- Visual cards showing key financial metrics
+
+### User Experience
+- Mobile-responsive design
+- Modern, clean interface
+- Real-time data updates
+- Date selection for past and future entries
+
+## Future Enhancements
+
+- [ ] User authentication and multi-user support
+- [ ] Custom expense categories
+- [ ] Bill reminders and notifications
+- [ ] Investment tracking
+- [ ] Financial goal setting
+- [ ] Advanced reporting and analytics 

@@ -13,7 +13,7 @@ const payFrequencies: PayFrequency[] = ['biweekly', 'semimonthly']
 
 function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
   const [formData, setFormData] = useState<CreateIncomeDto>({
-    amount: income?.amount || 0,
+    amount: income?.amount || '' as any,
     description: income?.description || '',
     incomeType: income?.incomeType || 'salary',
     payFrequency: income?.payFrequency || 'biweekly',
@@ -40,7 +40,7 @@ function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
     e.preventDefault()
 
     // Validation
-    if (formData.amount <= 0) {
+    if (!formData.amount || formData.amount <= 0) {
       setError('Amount must be greater than 0')
       return
     }
@@ -71,7 +71,7 @@ function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
 
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'amount' || name === 'hoursPerWeek' ? parseFloat(value) || 0 : value,
+      [name]: name === 'amount' || name === 'hoursPerWeek' ? (value === '' ? '' as any : parseFloat(value)) : value,
     }))
   }
 
@@ -194,7 +194,6 @@ function IncomeForm({ income, onSubmit, onCancel }: IncomeFormProps) {
               value={formData.date}
               onChange={handleChange}
               required
-              max={new Date().toISOString().split('T')[0]}
             />
           </div>
 

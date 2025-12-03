@@ -28,7 +28,7 @@ const frequencies: RecurringFrequency[] = [
 
 function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
   const [formData, setFormData] = useState<CreateExpenseDto>({
-    amount: expense?.amount || 0,
+    amount: expense?.amount || '' as any,
     description: expense?.description || '',
     category: expense?.category || 'other',
     date: expense?.date || new Date().toISOString().split('T')[0],
@@ -55,7 +55,7 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
     e.preventDefault()
 
     // Validation
-    if (formData.amount <= 0) {
+    if (!formData.amount || formData.amount <= 0) {
       setError('Amount must be greater than 0')
       return
     }
@@ -83,7 +83,7 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : (name === 'amount' ? parseFloat(value) || 0 : value),
+      [name]: type === 'checkbox' ? checked : (name === 'amount' ? (value === '' ? '' as any : parseFloat(value)) : value),
     }))
   }
 
@@ -154,7 +154,6 @@ function ExpenseForm({ expense, onSubmit, onCancel }: ExpenseFormProps) {
               value={formData.date}
               onChange={handleChange}
               required
-              max={new Date().toISOString().split('T')[0]}
             />
           </div>
 

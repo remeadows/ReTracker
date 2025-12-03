@@ -8,7 +8,7 @@ function Navigation() {
     <nav className="navigation">
       <div className="nav-container">
         <div className="nav-brand">
-          <h1>ReTracker</h1>
+          <h1>ReTracker v1</h1>
           <p>Personal Finance Tracker</p>
         </div>
         <div className="nav-links">
