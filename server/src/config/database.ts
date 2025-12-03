@@ -25,7 +25,7 @@ pool.on('error', (err) => {
 export const initializeDatabase = async () => {
   const client = await pool.connect();
   try {
-    // Create expenses table with recurring support
+    // Create expenses table
     await client.query(`
       CREATE TABLE IF NOT EXISTS expenses (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,11 +33,25 @@ export const initializeDatabase = async () => {
         description TEXT NOT NULL,
         category VARCHAR(50) NOT NULL,
         date DATE NOT NULL,
-        is_recurring BOOLEAN DEFAULT FALSE,
-        recurring_frequency VARCHAR(20),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Add recurring columns if they don't exist (migration)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='expenses' AND column_name='is_recurring') THEN
+          ALTER TABLE expenses ADD COLUMN is_recurring BOOLEAN DEFAULT FALSE;
+        END IF;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='expenses' AND column_name='recurring_frequency') THEN
+          ALTER TABLE expenses ADD COLUMN recurring_frequency VARCHAR(20);
+        END IF;
+      END $$;
     `);
 
     // Create income table
@@ -56,7 +70,7 @@ export const initializeDatabase = async () => {
       );
     `);
 
-    // Create index on date for faster queries
+    // Create indexes (idempotent operations)
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
     `);
@@ -65,12 +79,10 @@ export const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_income_date ON income(date);
     `);
 
-    // Create index on category for faster filtering
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
     `);
 
-    // Create index on recurring expenses
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_expenses_recurring ON expenses(is_recurring);
     `);
