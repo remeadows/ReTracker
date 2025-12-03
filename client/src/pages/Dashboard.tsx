@@ -1,12 +1,24 @@
-import { useState, useEffect } from 'react'
-import type { Expense, ExpenseStats } from '@shared/types'
-import { getExpenses, getStats } from '../services/api'
+import { useState, useEffect, useMemo } from 'react'
+import type { Expense, ExpenseStats, CreateExpenseDto } from '@shared/types'
+import { getExpenses, getStats, createExpense, updateExpense, deleteExpense } from '../services/api'
+import ExpenseForm from '../components/ExpenseForm'
+import ExpenseFilters, { type FilterOptions } from '../components/ExpenseFilters'
+import ExpenseList from '../components/ExpenseList'
+import ExportMenu from '../components/ExportMenu'
 
 function Dashboard() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [stats, setStats] = useState<ExpenseStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>()
+  const [filters, setFilters] = useState<FilterOptions>({
+    search: '',
+    category: 'all',
+    dateFrom: '',
+    dateTo: '',
+  })
 
   useEffect(() => {
     loadData()
@@ -30,6 +42,77 @@ function Dashboard() {
     }
   }
 
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        const matchesSearch =
+          expense.description.toLowerCase().includes(searchLower) ||
+          expense.category.toLowerCase().includes(searchLower)
+        if (!matchesSearch) return false
+      }
+
+      // Category filter
+      if (filters.category !== 'all' && expense.category !== filters.category) {
+        return false
+      }
+
+      // Date range filter
+      const expenseDate = new Date(expense.date).setHours(0, 0, 0, 0)
+      if (filters.dateFrom) {
+        const fromDate = new Date(filters.dateFrom).setHours(0, 0, 0, 0)
+        if (expenseDate < fromDate) return false
+      }
+      if (filters.dateTo) {
+        const toDate = new Date(filters.dateTo).setHours(0, 0, 0, 0)
+        if (expenseDate > toDate) return false
+      }
+
+      return true
+    })
+  }, [expenses, filters])
+
+  const handleAddExpense = () => {
+    setEditingExpense(undefined)
+    setShowForm(true)
+  }
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense)
+    setShowForm(true)
+  }
+
+  const handleFormSubmit = async (data: CreateExpenseDto) => {
+    try {
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, data)
+      } else {
+        await createExpense(data)
+      }
+      await loadData()
+      setShowForm(false)
+      setEditingExpense(undefined)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await deleteExpense(id)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to delete expense:', err)
+      alert('Failed to delete expense. Please try again.')
+    }
+  }
+
+  const handleFormCancel = () => {
+    setShowForm(false)
+    setEditingExpense(undefined)
+  }
+
   if (loading) {
     return <div className="dashboard">Loading...</div>
   }
@@ -43,6 +126,9 @@ function Dashboard() {
       <header className="dashboard-header">
         <h1>ReTracker</h1>
         <p>Your Personal Expense Tracker</p>
+        <button className="add-expense-btn" onClick={handleAddExpense}>
+          + Add Expense
+        </button>
       </header>
 
       {stats && (
@@ -62,26 +148,43 @@ function Dashboard() {
         </div>
       )}
 
+      <ExpenseFilters filters={filters} onFilterChange={setFilters} />
+
       <div className="expenses-section">
-        <h2>Recent Expenses</h2>
+        <div className="section-header">
+          <h2>
+            {filters.search || filters.category !== 'all' || filters.dateFrom || filters.dateTo
+              ? 'Filtered Expenses'
+              : 'All Expenses'}
+          </h2>
+          <span className="expense-count">
+          <ExportMenu expenses={filteredExpenses} />
+            {filteredExpenses.length} {filteredExpenses.length === 1 ? 'expense' : 'expenses'}
+          </span>
+        </div>
         {expenses.length === 0 ? (
-          <p className="empty-state">No expenses yet. Start tracking your spending!</p>
-        ) : (
-          <div className="expenses-list">
-            {expenses.map((expense) => (
-              <div key={expense.id} className="expense-item">
-                <div className="expense-info">
-                  <h4>{expense.description}</h4>
-                  <span className="expense-category">{expense.category}</span>
-                </div>
-                <div className="expense-amount">
-                  ${expense.amount.toFixed(2)}
-                </div>
-              </div>
-            ))}
+          <div className="empty-state-container">
+            <p className="empty-state">No expenses yet. Start tracking your spending!</p>
+            <button className="add-expense-btn-large" onClick={handleAddExpense}>
+              + Add Your First Expense
+            </button>
           </div>
+        ) : (
+          <ExpenseList
+            expenses={filteredExpenses}
+            onEdit={handleEditExpense}
+            onDelete={handleDeleteExpense}
+          />
         )}
       </div>
+
+      {showForm && (
+        <ExpenseForm
+          expense={editingExpense}
+          onSubmit={handleFormSubmit}
+          onCancel={handleFormCancel}
+        />
+      )}
     </div>
   )
 }
