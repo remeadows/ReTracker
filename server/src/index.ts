@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import expenseRoutes from './routes/expense.routes.js';
+import incomeRoutes from './routes/income.routes.js';
+import budgetRoutes from './routes/budget.routes.js';
 import { initializeDatabase } from './config/database.js';
 
 dotenv.config();
@@ -15,6 +17,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/budget', budgetRoutes);
+app.use('/api/income', incomeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
