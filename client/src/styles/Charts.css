@@ -1,0 +1,70 @@
+.chart-container {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}
+
+.chart-container h3 {
+  margin: 0 0 20px 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+}
+
+.chart-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 60px 20px;
+  font-size: 1rem;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.custom-tooltip {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-label {
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 4px 0;
+  text-transform: capitalize;
+}
+
+.tooltip-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin: 4px 0;
+}
+
+.tooltip-percent,
+.tooltip-count {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 4px 0 0 0;
+}
+
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    padding: 16px;
+  }
+
+  .chart-container h3 {
+    font-size: 1.125rem;
+  }
+}

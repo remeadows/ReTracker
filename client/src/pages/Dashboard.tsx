@@ -5,6 +5,8 @@ import ExpenseForm from '../components/ExpenseForm'
 import ExpenseFilters, { type FilterOptions } from '../components/ExpenseFilters'
 import ExpenseList from '../components/ExpenseList'
 import ExportMenu from '../components/ExportMenu'
+import CategoryChart from '../components/CategoryChart'
+import MonthlyTrendChart from '../components/MonthlyTrendChart'
 
 function Dashboard() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -145,6 +147,13 @@ function Dashboard() {
             <h3>Daily Average</h3>
             <p className="stat-value">${stats.averageDaily.toFixed(2)}</p>
           </div>
+        </div>
+      )}
+
+      {expenses.length > 0 && (
+        <div className="charts-grid">
+          <CategoryChart expenses={expenses} />
+          <MonthlyTrendChart expenses={expenses} />
         </div>
       )}
 

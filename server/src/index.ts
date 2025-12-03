@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import expenseRoutes from './routes/expense.routes.js';
+import { initializeDatabase } from './config/database.js';
 
 dotenv.config();
 
@@ -26,8 +27,19 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Initialize database and start server
+const startServer = async () => {
+  try {
+    await initializeDatabase();
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 export default app;
