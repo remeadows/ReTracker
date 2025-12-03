@@ -126,8 +126,7 @@ function Dashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>ReTracker</h1>
-        <p>Your Personal Expense Tracker</p>
+        <h1>Expense Tracker</h1>
         <button className="add-expense-btn" onClick={handleAddExpense}>
           + Add Expense
         </button>
