@@ -98,7 +98,7 @@ Or run them separately:
 # Run client only (http://localhost:3000)
 npm run dev:client
 
-# Run server only (http://localhost:5000)
+# Run server only (http://localhost:3001)
 npm run dev:server
 ```
 
