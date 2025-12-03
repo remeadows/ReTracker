@@ -12,16 +12,17 @@ function MonthlyTrendChart({ expenses }: MonthlyTrendChartProps) {
     const date = new Date(expense.date)
     const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    const amount = parseFloat(expense.amount as any)
 
     const existing = acc.find((item) => item.month === monthYear)
     if (existing) {
-      existing.amount += expense.amount
+      existing.amount += amount
       existing.count += 1
     } else {
       acc.push({
         month: monthYear,
         monthName,
-        amount: expense.amount,
+        amount: amount,
         count: 1,
       })
     }

@@ -20,12 +20,13 @@ function CategoryChart({ expenses }: CategoryChartProps) {
   // Calculate spending by category
   const categoryData = expenses.reduce((acc, expense) => {
     const existing = acc.find((item) => item.category === expense.category)
+    const amount = parseFloat(expense.amount as any)
     if (existing) {
-      existing.amount += expense.amount
+      existing.amount += amount
     } else {
       acc.push({
         category: expense.category,
-        amount: expense.amount,
+        amount: amount,
       })
     }
     return acc
@@ -50,7 +51,7 @@ function CategoryChart({ expenses }: CategoryChartProps) {
           <p className="tooltip-label">{payload[0].name}</p>
           <p className="tooltip-value">${payload[0].value.toFixed(2)}</p>
           <p className="tooltip-percent">
-            {((payload[0].value / expenses.reduce((sum, e) => sum + e.amount, 0)) * 100).toFixed(1)}%
+            {((payload[0].value / expenses.reduce((sum, e) => sum + parseFloat(e.amount as any), 0)) * 100).toFixed(1)}%
           </p>
         </div>
       )

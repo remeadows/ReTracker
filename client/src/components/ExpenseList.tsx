@@ -42,7 +42,7 @@ function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               </div>
             </div>
             <div className="expense-amount-section">
-              <div className="expense-amount">${expense.amount.toFixed(2)}</div>
+              <div className="expense-amount">${parseFloat(expense.amount as any).toFixed(2)}</div>
               <div className="expense-actions">
                 <button
                   onClick={() => onEdit(expense)}

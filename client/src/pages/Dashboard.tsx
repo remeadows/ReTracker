@@ -137,15 +137,15 @@ function Dashboard() {
         <div className="stats-grid">
           <div className="stat-card">
             <h3>Total Expenses</h3>
-            <p className="stat-value">${stats.totalExpenses.toFixed(2)}</p>
+            <p className="stat-value">${parseFloat(stats.totalExpenses as any).toFixed(2)}</p>
           </div>
           <div className="stat-card">
             <h3>This Month</h3>
-            <p className="stat-value">${stats.monthlyTotal.toFixed(2)}</p>
+            <p className="stat-value">${parseFloat(stats.monthlyTotal as any).toFixed(2)}</p>
           </div>
           <div className="stat-card">
             <h3>Daily Average</h3>
-            <p className="stat-value">${stats.averageDaily.toFixed(2)}</p>
+            <p className="stat-value">${parseFloat(stats.averageDaily as any).toFixed(2)}</p>
           </div>
         </div>
       )}
