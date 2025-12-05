@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import toast from 'react-hot-toast'
 import type { Expense, ExpenseStats, CreateExpenseDto } from '@shared/types'
 import { getExpenses, getStats, createExpense, updateExpense, deleteExpense } from '../services/api'
 import ExpenseForm from '../components/ExpenseForm'
@@ -89,8 +90,10 @@ function Dashboard() {
     try {
       if (editingExpense) {
         await updateExpense(editingExpense.id, data)
+        toast.success('Expense updated successfully!')
       } else {
         await createExpense(data)
+        toast.success('Expense added successfully!')
       }
       await loadData()
       setShowForm(false)
@@ -103,10 +106,11 @@ function Dashboard() {
   const handleDeleteExpense = async (id: string) => {
     try {
       await deleteExpense(id)
+      toast.success('Expense deleted successfully!')
       await loadData()
     } catch (err) {
       console.error('Failed to delete expense:', err)
-      alert('Failed to delete expense. Please try again.')
+      toast.error('Failed to delete expense. Please try again.')
     }
   }
 

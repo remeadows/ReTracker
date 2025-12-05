@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import type { Income, CreateIncomeDto, BudgetSummary } from '@shared/types'
 import { getIncome, createIncome, updateIncome, deleteIncome, getBudgetSummary } from '../services/api'
 import IncomeForm from './IncomeForm'
@@ -52,8 +53,10 @@ function BudgetDashboard() {
     try {
       if (editingIncome) {
         await updateIncome(editingIncome.id, data)
+        toast.success('Income updated successfully!')
       } else {
         await createIncome(data)
+        toast.success('Income added successfully!')
       }
       await fetchData()
       handleCloseForm()
@@ -63,15 +66,17 @@ function BudgetDashboard() {
   }
 
   const handleDeleteIncome = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this income source?')) {
-      return
-    }
-    try {
-      await deleteIncome(id)
-      await fetchData()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete income')
-    }
+    // Use toast.promise for better UX
+    toast.promise(
+      deleteIncome(id).then(() => fetchData()),
+      {
+        loading: 'Deleting income...',
+        success: 'Income deleted successfully!',
+        error: 'Failed to delete income',
+      }
+    ).catch((err) => {
+      console.error('Delete failed:', err)
+    })
   }
 
   const formatCurrency = (amount: number) => {

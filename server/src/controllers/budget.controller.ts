@@ -5,36 +5,36 @@ import { projectYearlyExpenses, calculateNetIncome } from '../utils/taxCalculato
 
 export const getBudgetSummary = async (req: Request, res: Response) => {
   try {
-    // Get all income
-    const incomeResult = await pool.query(
-      'SELECT amount, income_type, pay_frequency, hours_per_week, tax_rate FROM income'
-    );
+    // Optimized: Calculate income in database using SQL aggregation
+    const incomeResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(
+          CASE
+            WHEN income_type = 'hourly' THEN amount * hours_per_week * 52
+            WHEN income_type = 'salary' AND pay_frequency = 'biweekly' THEN amount * 26
+            WHEN income_type = 'salary' AND pay_frequency = 'semimonthly' THEN amount * 24
+            ELSE amount
+          END
+        ), 0) as yearly_income,
+        COALESCE(SUM(
+          CASE
+            WHEN income_type = 'hourly' THEN amount * hours_per_week * 52 * (tax_rate / 100)
+            WHEN income_type = 'salary' AND pay_frequency = 'biweekly' THEN amount * 26 * (tax_rate / 100)
+            WHEN income_type = 'salary' AND pay_frequency = 'semimonthly' THEN amount * 24 * (tax_rate / 100)
+            ELSE amount * (tax_rate / 100)
+          END
+        ), 0) as yearly_tax
+      FROM income
+    `);
+
+    const yearlyIncome = parseFloat(incomeResult.rows[0].yearly_income);
+    const yearlyTax = parseFloat(incomeResult.rows[0].yearly_tax);
+    const netYearlyIncome = yearlyIncome - yearlyTax;
 
     // Get all expenses with recurring info
     const expensesResult = await pool.query(
       'SELECT amount, is_recurring, recurring_frequency FROM expenses'
     );
-
-    // Calculate total income
-    let yearlyIncome = 0;
-    let yearlyTax = 0;
-
-    for (const income of incomeResult.rows) {
-      const amount = parseFloat(income.amount);
-      let yearly = amount;
-
-      if (income.income_type === 'hourly' && income.hours_per_week) {
-        yearly = amount * parseFloat(income.hours_per_week) * 52;
-      } else if (income.income_type === 'salary' && income.pay_frequency) {
-        const periods = income.pay_frequency === 'biweekly' ? 26 : 24;
-        yearly = amount * periods;
-      }
-
-      yearlyIncome += yearly;
-      yearlyTax += yearly * (parseFloat(income.tax_rate) / 100);
-    }
-
-    const netYearlyIncome = yearlyIncome - yearlyTax;
 
     // Calculate expenses (project recurring to yearly)
     const expenses = expensesResult.rows.map(row => ({
