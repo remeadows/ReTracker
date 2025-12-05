@@ -53,6 +53,35 @@
   border-color: var(--primary-color);
 }
 
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.logout-button {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
 @media (max-width: 640px) {
   .nav-container {
     flex-direction: column;
@@ -67,5 +96,10 @@
   .nav-link {
     flex: 1;
     text-align: center;
+  }
+
+  .nav-user {
+    width: 100%;
+    justify-content: space-between;
   }
 }

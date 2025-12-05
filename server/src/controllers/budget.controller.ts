@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import type { ApiResponse, BudgetSummary } from '@shared/types/index.js';
 import { pool } from '../config/database.js';
-import { projectYearlyExpenses, calculateNetIncome } from '../utils/taxCalculator.js';
+import { projectYearlyExpenses } from '../utils/taxCalculator.js';
+import { AuthRequest } from '../middleware/auth.js';
 
-export const getBudgetSummary = async (req: Request, res: Response) => {
+export const getBudgetSummary = async (req: AuthRequest, res: Response) => {
   try {
     // Optimized: Calculate income in database using SQL aggregation
     const incomeResult = await pool.query(`
@@ -25,15 +26,17 @@ export const getBudgetSummary = async (req: Request, res: Response) => {
           END
         ), 0) as yearly_tax
       FROM income
-    `);
+      WHERE user_id = $1
+    `, [req.userId]);
 
     const yearlyIncome = parseFloat(incomeResult.rows[0].yearly_income);
     const yearlyTax = parseFloat(incomeResult.rows[0].yearly_tax);
     const netYearlyIncome = yearlyIncome - yearlyTax;
 
-    // Get all expenses with recurring info
+    // Get all expenses with recurring info for user
     const expensesResult = await pool.query(
-      'SELECT amount, is_recurring, recurring_frequency FROM expenses'
+      'SELECT amount, is_recurring, recurring_frequency FROM expenses WHERE user_id = $1',
+      [req.userId]
     );
 
     // Calculate expenses (project recurring to yearly)

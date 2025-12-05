@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import authRoutes from './routes/auth.routes.js';
 import expenseRoutes from './routes/expense.routes.js';
 import incomeRoutes from './routes/income.routes.js';
 import budgetRoutes from './routes/budget.routes.js';
@@ -34,20 +36,22 @@ const corsOptions = {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Add payload size limit
+app.use(cookieParser()); // Parse cookies
 app.use('/api/', limiter); // Apply rate limiting to all API routes
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/income', incomeRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'ReTracker API is running' });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ success: false, error: 'Internal server error' });
 });

@@ -28,6 +28,17 @@ pool.on('error', (err) => {
 export const initializeDatabase = async () => {
   const client = await pool.connect();
   try {
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create expenses table
     await client.query(`
       CREATE TABLE IF NOT EXISTS expenses (
@@ -57,6 +68,17 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Add user_id to expenses table (migration)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='expenses' AND column_name='user_id') THEN
+          ALTER TABLE expenses ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
+    `);
+
     // Create income table
     await client.query(`
       CREATE TABLE IF NOT EXISTS income (
@@ -71,6 +93,17 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Add user_id to income table (migration)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='income' AND column_name='user_id') THEN
+          ALTER TABLE income ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
     `);
 
     // Create indexes (idempotent operations)
@@ -97,6 +130,19 @@ export const initializeDatabase = async () => {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_income_type ON income(income_type);
+    `);
+
+    // Indexes for user_id (authentication)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_income_user_id ON income(user_id);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `);
 
     console.log('✓ Database tables and indexes initialized');

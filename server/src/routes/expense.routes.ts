@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as expenseController from '../controllers/expense.controller.js';
+import { authenticateToken } from '../middleware/auth.js';
 import {
   validateCreateExpense,
   validateUpdateExpense,
@@ -7,6 +8,9 @@ import {
 } from '../middleware/validation.js';
 
 const router = Router();
+
+// All expense routes require authentication
+router.use(authenticateToken);
 
 router.get('/', expenseController.getAllExpenses);
 router.get('/stats', expenseController.getExpenseStats);

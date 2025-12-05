@@ -164,3 +164,35 @@ export const validateUUID = [
     .withMessage('Invalid ID format'),
   handleValidationErrors,
 ];
+
+/**
+ * Validation rules for user registration
+ */
+export const validateRegister = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Must be a valid email address')
+    .normalizeEmail(),
+  body('password')
+    .isLength({ min: 8, max: 100 })
+    .withMessage('Password must be between 8 and 100 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for user login
+ */
+export const validateLogin = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Must be a valid email address')
+    .normalizeEmail(),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  handleValidationErrors,
+];

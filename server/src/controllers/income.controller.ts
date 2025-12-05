@@ -1,12 +1,14 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import type { Income, CreateIncomeDto, UpdateIncomeDto, ApiResponse } from '@shared/types/index.js';
 import { pool } from '../config/database.js';
-import { calculateTaxRate, calculateNetIncome } from '../utils/taxCalculator.js';
+import { calculateTaxRate } from '../utils/taxCalculator.js';
+import { AuthRequest } from '../middleware/auth.js';
 
-export const getAllIncome = async (req: Request, res: Response) => {
+export const getAllIncome = async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(
-      'SELECT id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt" FROM income ORDER BY date DESC'
+      'SELECT id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt" FROM income WHERE user_id = $1 ORDER BY date DESC',
+      [req.userId]
     );
 
     const response: ApiResponse<Income[]> = {
@@ -24,12 +26,12 @@ export const getAllIncome = async (req: Request, res: Response) => {
   }
 };
 
-export const getIncomeById = async (req: Request, res: Response) => {
+export const getIncomeById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt" FROM income WHERE id = $1',
-      [id]
+      'SELECT id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt" FROM income WHERE id = $1 AND user_id = $2',
+      [id, req.userId]
     );
 
     if (result.rows.length === 0) {
@@ -55,7 +57,7 @@ export const getIncomeById = async (req: Request, res: Response) => {
   }
 };
 
-export const createIncome = async (req: Request, res: Response) => {
+export const createIncome = async (req: AuthRequest, res: Response) => {
   try {
     const dto: CreateIncomeDto = req.body;
 
@@ -80,8 +82,8 @@ export const createIncome = async (req: Request, res: Response) => {
     const taxRate = calculateTaxRate(yearlyIncome);
 
     const result = await pool.query(
-      'INSERT INTO income (amount, description, income_type, pay_frequency, hours_per_week, tax_rate, date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt"',
-      [dto.amount, dto.description, dto.incomeType, dto.payFrequency || null, dto.hoursPerWeek || null, taxRate, dto.date]
+      'INSERT INTO income (amount, description, income_type, pay_frequency, hours_per_week, tax_rate, date, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt"',
+      [dto.amount, dto.description, dto.incomeType, dto.payFrequency || null, dto.hoursPerWeek || null, taxRate, dto.date, req.userId]
     );
 
     const response: ApiResponse<Income> = {
@@ -99,12 +101,12 @@ export const createIncome = async (req: Request, res: Response) => {
   }
 };
 
-export const updateIncome = async (req: Request, res: Response) => {
+export const updateIncome = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const dto: UpdateIncomeDto = req.body;
 
-    const checkResult = await pool.query('SELECT * FROM income WHERE id = $1', [id]);
+    const checkResult = await pool.query('SELECT * FROM income WHERE id = $1 AND user_id = $2', [id, req.userId]);
     if (checkResult.rows.length === 0) {
       const response: ApiResponse<never> = {
         success: false,
@@ -163,9 +165,10 @@ export const updateIncome = async (req: Request, res: Response) => {
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
+    values.push(req.userId);
 
     const result = await pool.query(
-      `UPDATE income SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt"`,
+      `UPDATE income SET ${updates.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING id, amount, description, income_type as "incomeType", pay_frequency as "payFrequency", hours_per_week as "hoursPerWeek", tax_rate as "taxRate", date, created_at as "createdAt", updated_at as "updatedAt"`,
       values
     );
 
@@ -184,11 +187,11 @@ export const updateIncome = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteIncome = async (req: Request, res: Response) => {
+export const deleteIncome = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query('DELETE FROM income WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query('DELETE FROM income WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.userId]);
 
     if (result.rows.length === 0) {
       const response: ApiResponse<never> = {

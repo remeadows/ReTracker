@@ -1,11 +1,13 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import type { Expense, CreateExpenseDto, UpdateExpenseDto, ApiResponse, ExpenseStats } from '@shared/types/index.js';
 import { pool } from '../config/database.js';
+import { AuthRequest } from '../middleware/auth.js';
 
-export const getAllExpenses = async (req: Request, res: Response) => {
+export const getAllExpenses = async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(
-      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses ORDER BY date DESC'
+      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses WHERE user_id = $1 ORDER BY date DESC',
+      [req.userId]
     );
 
     const response: ApiResponse<Expense[]> = {
@@ -23,12 +25,12 @@ export const getAllExpenses = async (req: Request, res: Response) => {
   }
 };
 
-export const getExpenseById = async (req: Request, res: Response) => {
+export const getExpenseById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses WHERE id = $1',
-      [id]
+      'SELECT id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt" FROM expenses WHERE id = $1 AND user_id = $2',
+      [id, req.userId]
     );
 
     if (result.rows.length === 0) {
@@ -54,7 +56,7 @@ export const getExpenseById = async (req: Request, res: Response) => {
   }
 };
 
-export const createExpense = async (req: Request, res: Response) => {
+export const createExpense = async (req: AuthRequest, res: Response) => {
   try {
     const dto: CreateExpenseDto = req.body;
 
@@ -67,8 +69,8 @@ export const createExpense = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO expenses (amount, description, category, date, is_recurring, recurring_frequency) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"',
-      [dto.amount, dto.description, dto.category, dto.date, dto.isRecurring || false, dto.recurringFrequency || null]
+      'INSERT INTO expenses (amount, description, category, date, is_recurring, recurring_frequency, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"',
+      [dto.amount, dto.description, dto.category, dto.date, dto.isRecurring || false, dto.recurringFrequency || null, req.userId]
     );
 
     const response: ApiResponse<Expense> = {
@@ -86,13 +88,13 @@ export const createExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const updateExpense = async (req: Request, res: Response) => {
+export const updateExpense = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const dto: UpdateExpenseDto = req.body;
 
-    // Check if expense exists
-    const checkResult = await pool.query('SELECT id FROM expenses WHERE id = $1', [id]);
+    // Check if expense exists and belongs to user
+    const checkResult = await pool.query('SELECT id FROM expenses WHERE id = $1 AND user_id = $2', [id, req.userId]);
     if (checkResult.rows.length === 0) {
       const response: ApiResponse<never> = {
         success: false,
@@ -133,9 +135,10 @@ export const updateExpense = async (req: Request, res: Response) => {
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
+    values.push(req.userId);
 
     const result = await pool.query(
-      `UPDATE expenses SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"`,
+      `UPDATE expenses SET ${updates.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING id, amount, description, category, date, is_recurring as "isRecurring", recurring_frequency as "recurringFrequency", created_at as "createdAt", updated_at as "updatedAt"`,
       values
     );
 
@@ -154,11 +157,11 @@ export const updateExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteExpense = async (req: Request, res: Response) => {
+export const deleteExpense = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query('DELETE FROM expenses WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query('DELETE FROM expenses WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.userId]);
 
     if (result.rows.length === 0) {
       const response: ApiResponse<never> = {
@@ -183,26 +186,30 @@ export const deleteExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const getExpenseStats = async (req: Request, res: Response) => {
+export const getExpenseStats = async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    // Get total expenses
-    const totalResult = await pool.query('SELECT COALESCE(SUM(amount), 0) as total FROM expenses');
+    // Get total expenses for user
+    const totalResult = await pool.query(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE user_id = $1',
+      [req.userId]
+    );
     const totalExpenses = parseFloat(totalResult.rows[0].total);
 
-    // Get monthly total
+    // Get monthly total for user
     const monthlyResult = await pool.query(
-      'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE EXTRACT(MONTH FROM date) = $1 AND EXTRACT(YEAR FROM date) = $2',
-      [currentMonth, currentYear]
+      'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE user_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3',
+      [req.userId, currentMonth, currentYear]
     );
     const monthlyTotal = parseFloat(monthlyResult.rows[0].total);
 
-    // Get category breakdown
+    // Get category breakdown for user
     const categoryResult = await pool.query(
-      'SELECT category, COALESCE(SUM(amount), 0) as total FROM expenses GROUP BY category'
+      'SELECT category, COALESCE(SUM(amount), 0) as total FROM expenses WHERE user_id = $1 GROUP BY category',
+      [req.userId]
     );
     const categoryBreakdown = categoryResult.rows.reduce((acc, row) => {
       acc[row.category] = parseFloat(row.total);
