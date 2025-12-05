@@ -11,6 +11,9 @@ export const pool = new Pool({
   database: process.env.DB_NAME || 'retracker',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
+  max: 20, // maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // return error after 2 seconds if can't connect
 });
 
 // Test database connection
@@ -87,7 +90,16 @@ export const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_expenses_recurring ON expenses(is_recurring);
     `);
 
-    console.log('✓ Database tables initialized');
+    // Additional indexes for performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_expenses_date_category ON expenses(date, category);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_income_type ON income(income_type);
+    `);
+
+    console.log('✓ Database tables and indexes initialized');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
